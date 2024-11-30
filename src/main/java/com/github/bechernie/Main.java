@@ -4,10 +4,16 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
+
+import static java.lang.System.exit;
 
 public class Main {
 
@@ -40,7 +46,15 @@ public class Main {
             preprocessor.command("gcc", "-E", "-P", absoluteFilePath, "-o", preprocessedFilename);
             preprocessor.start().waitFor();
 
-            compile(preprocessedFilename, assemblyFilename);
+            switch (compile(preprocessedFilename, assemblyFilename)) {
+                case Error(String message) -> {
+                    System.err.println(message);
+                    exit(1);
+                }
+                case Success() -> {
+                    // Empty on purpose
+                }
+            }
 
             final var assembleAndLink = new ProcessBuilder();
             assembleAndLink.command("gcc", assemblyFilename, "-o", fullPath + filename);
@@ -57,9 +71,27 @@ public class Main {
         }
     }
 
-    private static void compile(String inputPath, String outputPath) throws IOException, InterruptedException {
-        final var mockCompile = new ProcessBuilder();
-        mockCompile.command("gcc", "-S", "-O", "-fno-asynchronous-unwind-tables", "-fcf-protection=none", inputPath, "-o", outputPath);
-        mockCompile.start().waitFor();
+    sealed interface CompileResult {
+    }
+
+    record Success() implements CompileResult {
+    }
+
+    record Error(String message) implements CompileResult {
+    }
+
+    private static CompileResult compile(String inputPath, String outputPath) throws IOException, InterruptedException {
+        var remainingFileContent = FileUtils.readFileToString(new File(inputPath), StandardCharsets.UTF_8);
+
+        final var lexResult = new Lexer().lex(remainingFileContent);
+
+        return switch (lexResult) {
+            case Lexer.Error(char currentChar, int line, int column) ->
+                    new Error("Lexer error: unexpected char = '" + currentChar + "' at line " + line + ", column " + column);
+            case Lexer.Success(List<Lexer.Lexeme> lexemes) -> {
+                System.out.println(lexemes);
+                yield new Success();
+            }
+        };
     }
 }
