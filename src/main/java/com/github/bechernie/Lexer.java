@@ -1,5 +1,9 @@
 package com.github.bechernie;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,43 +13,67 @@ import java.util.regex.Pattern;
 
 public class Lexer {
 
-    record Lexeme(LexemeType type, int line, int columnStart, int columnEnd) {
+    public record Lexeme(LexemeType type, int line, int columnStart, int columnEnd) {
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Descriptor {
+        String value();
+    }
+
+    public static String getDescriptorValue(LexemeType lexemeType) {
+        return lexemeType.getClass().getAnnotation(Descriptor.class).value();
     }
 
     public sealed interface LexemeType {
     }
 
-    record Identifier(String value) implements LexemeType {
+    @Descriptor("identifier")
+    public record Identifier(String value) implements LexemeType {
     }
 
-    record Constant(int value) implements LexemeType {
+    @Descriptor("integer constant")
+    public record IntConstant(int value) implements LexemeType {
     }
 
-    record IntKeyword() implements LexemeType {
+    @Descriptor("int")
+    public record IntKeyword() implements LexemeType {
     }
 
-    record VoidKeyword() implements LexemeType {
+    @Descriptor("void")
+    public record VoidKeyword() implements LexemeType {
     }
 
-    record ReturnKeyword() implements LexemeType {
+    @Descriptor("return")
+    public record ReturnKeyword() implements LexemeType {
     }
 
-    record OpenParenthesis() implements LexemeType {
+    @Descriptor("open parenthesis")
+    public record OpenParenthesis() implements LexemeType {
     }
 
-    record CloseParenthesis() implements LexemeType {
+    @Descriptor("close parenthesis")
+    public record CloseParenthesis() implements LexemeType {
     }
 
-    record OpenBrace() implements LexemeType {
+    @Descriptor("open brace")
+    public record OpenBrace() implements LexemeType {
     }
 
-    record CloseBrace() implements LexemeType {
+    @Descriptor("close brace")
+    public record CloseBrace() implements LexemeType {
     }
 
-    record Semicolon() implements LexemeType {
+    @Descriptor("semicolon")
+    public record Semicolon() implements LexemeType {
     }
 
-    static class LexingException extends RuntimeException {
+    @Descriptor("eof")
+    public record EOF() implements LexemeType {
+    }
+
+    public static class LexingException extends RuntimeException {
     }
 
     private static final Map<Pattern, Function<String, LexemeType>> LEXEMES_PATTERNS = new LinkedHashMap<>();
@@ -60,7 +88,7 @@ public class Lexer {
                 final var leadingChar = matchedText.getBytes()[0];
 
                 if (intConstant.matcher(matchedText).matches()) {
-                    yield new Constant(Integer.parseInt(matchedText));
+                    yield new IntConstant(Integer.parseInt(matchedText));
                 } else if (leadingChar > '0' && leadingChar < '9') {
                     throw new LexingException();
                 }
@@ -78,10 +106,10 @@ public class Lexer {
     public sealed interface LexResult {
     }
 
-    record Error(char currentChar, int line, int column) implements LexResult {
+    public record Error(char currentChar, int line, int column) implements LexResult {
     }
 
-    record Success(List<Lexeme> lexemes) implements LexResult {
+    public record Success(List<Lexeme> lexemes) implements LexResult {
     }
 
     public LexResult lex(String program) {
@@ -133,6 +161,8 @@ public class Lexer {
                 program = program.substring(longestMatch.length());
             }
         }
+
+        lexemes.add(new Lexeme(new EOF(), currentLine, currentColumn, currentColumn));
 
         return new Success(lexemes);
     }

@@ -17,6 +17,9 @@ import static java.lang.System.exit;
 
 public class Main {
 
+    record CompileOptions(boolean lex, boolean parse, boolean codegen) {
+    }
+
     public static void main(String[] args) {
         final var parser = new DefaultParser();
 
@@ -32,6 +35,12 @@ public class Main {
                 throw new ParseException("Missing file path");
             }
 
+            final var compileOptions = new CompileOptions(
+                    commandLine.hasOption("l"),
+                    commandLine.hasOption("p"),
+                    commandLine.hasOption("c")
+            );
+
             final var filePath = Path.of(commandLine.getArgs()[0]);
 
             final var absoluteFilePath = filePath.toAbsolutePath().toString();
@@ -46,7 +55,7 @@ public class Main {
             preprocessor.command("gcc", "-E", "-P", absoluteFilePath, "-o", preprocessedFilename);
             preprocessor.start().waitFor();
 
-            switch (compile(preprocessedFilename, assemblyFilename)) {
+            switch (compile(preprocessedFilename, assemblyFilename, compileOptions)) {
                 case Error(String message) -> {
                     System.err.println(message);
                     exit(1);
@@ -80,16 +89,43 @@ public class Main {
     record Error(String message) implements CompileResult {
     }
 
-    private static CompileResult compile(String inputPath, String outputPath) throws IOException, InterruptedException {
+    private static CompileResult compile(String inputPath, String outputPath, CompileOptions compileOptions) throws IOException, InterruptedException {
         var remainingFileContent = FileUtils.readFileToString(new File(inputPath), StandardCharsets.UTF_8);
 
         final var lexResult = new Lexer().lex(remainingFileContent);
 
+        return handleLexerResult(compileOptions, lexResult);
+    }
+
+    private static CompileResult handleLexerResult(CompileOptions compileOptions, Lexer.LexResult lexResult) {
         return switch (lexResult) {
             case Lexer.Error(char currentChar, int line, int column) ->
                     new Error("Lexer error: unexpected char = '" + currentChar + "' at line " + line + ", column " + column);
             case Lexer.Success(List<Lexer.Lexeme> lexemes) -> {
-                System.out.println(lexemes);
+                if (compileOptions.lex) {
+                    System.out.println(lexemes);
+
+                    yield new Success();
+                }
+
+                final var parseResult = new Parser().parseProgram(lexemes);
+
+                yield handleParserResult(compileOptions, parseResult);
+            }
+        };
+    }
+
+    private static CompileResult handleParserResult(CompileOptions compileOptions, Parser.ParseResult parseResult) {
+        return switch (parseResult) {
+            case Parser.Error(Lexer.LexemeType expected, Lexer.Lexeme actual) ->
+                    new Error("Parser error: " + "expected '" + Lexer.getDescriptorValue(expected) + "', found '" + Lexer.getDescriptorValue(actual.type()) + "', at line " + actual.line() + ", column " + actual.columnStart());
+            case Parser.Success success -> {
+                if (compileOptions.parse) {
+                    System.out.println(success.program());
+
+                    yield new Success();
+                }
+
                 yield new Success();
             }
         };
