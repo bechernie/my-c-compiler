@@ -94,10 +94,10 @@ public class Main {
 
         final var lexResult = new Lexer().lex(remainingFileContent);
 
-        return handleLexerResult(compileOptions, lexResult);
+        return handleLexerResult(compileOptions, outputPath, lexResult);
     }
 
-    private static CompileResult handleLexerResult(CompileOptions compileOptions, Lexer.LexResult lexResult) {
+    private static CompileResult handleLexerResult(CompileOptions compileOptions, String outputPath, Lexer.LexResult lexResult) {
         return switch (lexResult) {
             case Lexer.Error(char currentChar, int line, int column) ->
                     new Error("Lexer error: unexpected char = '" + currentChar + "' at line " + line + ", column " + column);
@@ -110,12 +110,12 @@ public class Main {
 
                 final var parseResult = new Parser().parseProgram(lexemes);
 
-                yield handleParserResult(compileOptions, parseResult);
+                yield handleParserResult(compileOptions, outputPath, parseResult);
             }
         };
     }
 
-    private static CompileResult handleParserResult(CompileOptions compileOptions, Parser.ParseResult parseResult) {
+    private static CompileResult handleParserResult(CompileOptions compileOptions, String outputPath, Parser.ParseResult parseResult) {
         return switch (parseResult) {
             case Parser.Error(Lexer.LexemeType expected, Lexer.Lexeme actual) ->
                     new Error("Parser error: " + "expected '" + Lexer.getDescriptorValue(expected) + "', found '" + Lexer.getDescriptorValue(actual.type()) + "', at line " + actual.line() + ", column " + actual.columnStart());
@@ -128,13 +128,15 @@ public class Main {
 
                 final var assembly = new Codegen().generateCode(success.program());
 
-                yield handleCodegenResult(assembly);
+                yield handleCodegenResult(outputPath, assembly);
             }
         };
     }
 
-    private static CompileResult handleCodegenResult(Codegen.Program assembly) {
+    private static CompileResult handleCodegenResult(String outputPath, Codegen.Program assembly) {
         System.out.println(assembly);
+
+        new Emitter().emit(outputPath, assembly);
 
         return new Success();
     }
