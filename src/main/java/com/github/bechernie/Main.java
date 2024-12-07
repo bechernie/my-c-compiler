@@ -126,8 +126,16 @@ public class Main {
                     yield new Success();
                 }
 
-                yield new Success();
+                final var assembly = new Codegen().generateCode(success.program());
+
+                yield handleCodegenResult(assembly);
             }
         };
+    }
+
+    private static CompileResult handleCodegenResult(Codegen.Program assembly) {
+        System.out.println(assembly);
+
+        return new Success();
     }
 }

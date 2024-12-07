@@ -4,22 +4,22 @@ import java.util.List;
 
 public class Parser {
 
-    sealed interface Program {
+    public sealed interface Program {
     }
 
-    record FunctionDefinition(String name, Statement body) implements Program {
+    public record FunctionDefinition(String name, Statement body) implements Program {
     }
 
-    sealed interface Statement {
+    public sealed interface Statement {
     }
 
-    record Return(Expression expression) implements Statement {
+    public record Return(Expression expression) implements Statement {
     }
 
-    sealed interface Expression {
+    public sealed interface Expression {
     }
 
-    record Constant(int value) implements Expression {
+    public record Constant(int value) implements Expression {
     }
 
     public sealed interface ParseResult {
@@ -31,7 +31,7 @@ public class Parser {
     public record Success(Program program) implements ParseResult {
     }
 
-    static class ParseException extends RuntimeException {
+    private static class ParseException extends RuntimeException {
 
         private final Lexer.LexemeType expected;
         private final Lexer.Lexeme actual;
