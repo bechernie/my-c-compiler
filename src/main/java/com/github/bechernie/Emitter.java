@@ -27,6 +27,8 @@ public class Emitter {
             case Codegen.Mov(Codegen.Operand operand1, Codegen.Operand operand2) ->
                     "movl " + convertOperand(operand1) + ", " + convertOperand(operand2);
             case Codegen.Ret _ -> "ret";
+            case Codegen.AllocateStack allocateStack -> throw new UnsupportedOperationException();
+            case Codegen.Unary unary -> throw new UnsupportedOperationException();
         };
     }
 
@@ -34,6 +36,8 @@ public class Emitter {
         return switch (operand) {
             case Codegen.Imm(int value) -> "$" + value;
             case Codegen.Register _ -> "%eax";
+            case Codegen.Pseudo pseudo -> throw new UnsupportedOperationException();
+            case Codegen.Stack stack -> throw new UnsupportedOperationException();
         };
     }
 }

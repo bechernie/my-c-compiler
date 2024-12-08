@@ -137,9 +137,11 @@ public class Main {
                     yield new Success();
                 }
 
-                final var assembly = new Codegen().emitAssembly(success.program());
+                final var codegen = new Codegen().emitAssembly(tackyProgram);
+                final var replacePseudo = new ReplacePseudo().emitAssembly(codegen);
+                final var fixupInstructions = new FixupInstructions().emitAssembly(replacePseudo.program(), replacePseudo.stackOffset());
 
-                yield handleCodegenResult(outputPath, assembly);
+                yield handleCodegenResult(compileOptions,outputPath, fixupInstructions);
             }
         };
     }
@@ -148,8 +150,12 @@ public class Main {
         return expected.stream().map(Lexer::getDescriptorValue).collect(Collectors.joining("', '", "'", "'"));
     }
 
-    private static CompileResult handleCodegenResult(String outputPath, Codegen.Program assembly) {
-        System.out.println(assembly);
+    private static CompileResult handleCodegenResult(CompileOptions compileOptions, String outputPath, Codegen.Program assembly) {
+        if (compileOptions.codegen) {
+            System.out.println(assembly);
+
+            return new Success();
+        }
 
         new Emitter().emit(outputPath, assembly);
 
