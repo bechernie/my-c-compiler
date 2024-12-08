@@ -28,7 +28,7 @@ public class Codegen {
     public record Register() implements Operand {
     }
 
-    public Program generateCode(Parser.Program program) {
+    public Program emitAssembly(Parser.Program program) {
         switch (program) {
             case Parser.FunctionDefinition(String name, Parser.Statement body) -> {
                 return new Function(name, convertStatement(body));

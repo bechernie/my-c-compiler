@@ -18,7 +18,7 @@ import static java.lang.System.exit;
 
 public class Main {
 
-    record CompileOptions(boolean lex, boolean parse, boolean codegen) {
+    record CompileOptions(boolean lex, boolean parse, boolean tacky, boolean codegen) {
     }
 
     public static void main(String[] args) {
@@ -26,8 +26,9 @@ public class Main {
 
         final var options = new Options();
         options.addOption("l", "lex", false, "Stops before parsing");
-        options.addOption("p", "parse", false, "Stops before assembly generation");
-        options.addOption("c", "codegen", false, "Stops before code emission");
+        options.addOption("p", "parse", false, "Stops before tacky generation");
+        options.addOption("t", "tacky", false, "Stops before code generation");
+        options.addOption("c", "codegen", false, "Stops before assembly emission");
 
         try {
             final var commandLine = parser.parse(options, args);
@@ -39,6 +40,7 @@ public class Main {
             final var compileOptions = new CompileOptions(
                     commandLine.hasOption("l"),
                     commandLine.hasOption("p"),
+                    commandLine.hasOption("t"),
                     commandLine.hasOption("c")
             );
 
@@ -127,7 +129,15 @@ public class Main {
                     yield new Success();
                 }
 
-                final var assembly = new Codegen().generateCode(success.program());
+                final var tackyProgram = new TackyGen().emitTacky(success.program());
+
+                if (compileOptions.tacky) {
+                    System.out.println(tackyProgram);
+
+                    yield new Success();
+                }
+
+                final var assembly = new Codegen().emitAssembly(success.program());
 
                 yield handleCodegenResult(outputPath, assembly);
             }
