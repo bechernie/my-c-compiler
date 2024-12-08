@@ -13,9 +13,9 @@ public class Emitter {
                 case Codegen.Function(String name, List<Codegen.Instruction> instructions) -> {
                     printStream.println("\t.globl " + name);
                     printStream.println(name + ":");
-                    printStream.println("pushq\t %rbp");
-                    printStream.println("movq\t %rsp, %rbp");
-                    instructions.forEach(instruction -> printStream.println("\t" + emitInstruction(instruction)));
+                    printStream.println("\tpushq\t%rbp");
+                    printStream.println("\tmovq\t%rsp, %rbp");
+                    instructions.forEach(instruction -> printStream.println(emitInstruction(instruction)));
                 }
             }
             printStream.println(".section .note.GNU-stack,\"\",@progbits");
@@ -25,15 +25,15 @@ public class Emitter {
     }
 
     private String emitInstruction(Codegen.Instruction instruction) {
-        return switch (instruction) {
+        return "\t" + switch (instruction) {
             case Codegen.Mov(Codegen.Operand operand1, Codegen.Operand operand2) ->
-                    "movl\t " + convertOperand(operand1) + ", " + convertOperand(operand2);
+                    "movl\t" + convertOperand(operand1) + ", " + convertOperand(operand2);
             case Codegen.Ret _ -> """
-                    movq\t %rbp, %rsp
-                    popq\t %rbp
-                    ret
-                    """;
-            case Codegen.AllocateStack(int size) -> "subq\t $" + size + ", %rsp";
+                    movq\t%rbp, %rsp
+                    \tpopq\t%rbp
+                    \tret
+                    """.stripIndent();
+            case Codegen.AllocateStack(int size) -> "subq\t$" + size + ", %rsp";
             case Codegen.Unary(Codegen.UnaryOperator operator, Codegen.Operand operand) ->
                     convertUnaryOperator(operator) + "\t " + convertOperand(operand);
         };
