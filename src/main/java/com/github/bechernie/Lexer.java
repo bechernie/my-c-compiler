@@ -69,6 +69,18 @@ public class Lexer {
     public record Semicolon() implements LexemeType {
     }
 
+    @Descriptor("minus")
+    public record Minus() implements LexemeType {
+    }
+
+    @Descriptor("decrement")
+    public record Decrement() implements LexemeType {
+    }
+
+    @Descriptor("bitwise complement")
+    public record BitwiseComplement() implements LexemeType {
+    }
+
     @Descriptor("eof")
     public record EOF() implements LexemeType {
     }
@@ -96,6 +108,9 @@ public class Lexer {
                 yield new Identifier(matchedText);
             }
         });
+        LEXEMES_PATTERNS.put(Pattern.compile("--"), (_) -> new Decrement());
+        LEXEMES_PATTERNS.put(Pattern.compile("-"), (_) -> new Minus());
+        LEXEMES_PATTERNS.put(Pattern.compile("~"), (_) -> new BitwiseComplement());
         LEXEMES_PATTERNS.put(Pattern.compile("\\("), (_) -> new OpenParenthesis());
         LEXEMES_PATTERNS.put(Pattern.compile("\\)"), (_) -> new CloseParenthesis());
         LEXEMES_PATTERNS.put(Pattern.compile("\\{"), (_) -> new OpenBrace());
