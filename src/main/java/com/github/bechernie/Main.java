@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.System.exit;
 
@@ -117,8 +118,8 @@ public class Main {
 
     private static CompileResult handleParserResult(CompileOptions compileOptions, String outputPath, Parser.ParseResult parseResult) {
         return switch (parseResult) {
-            case Parser.Error(Lexer.LexemeType expected, Lexer.Lexeme actual) ->
-                    new Error("Parser error: " + "expected '" + Lexer.getDescriptorValue(expected) + "', found '" + Lexer.getDescriptorValue(actual.type()) + "', at line " + actual.line() + ", column " + actual.columnStart());
+            case Parser.Error(List<Lexer.LexemeType> expected, Lexer.Lexeme actual) ->
+                    new Error("Parser error: " + "expected one of " + formatExpectedList(expected) + ", found '" + Lexer.getDescriptorValue(actual.type()) + "', at line " + actual.line() + ", column " + actual.columnStart());
             case Parser.Success success -> {
                 if (compileOptions.parse) {
                     System.out.println(success.program());
@@ -131,6 +132,10 @@ public class Main {
                 yield handleCodegenResult(outputPath, assembly);
             }
         };
+    }
+
+    private static String formatExpectedList(List<Lexer.LexemeType> expected) {
+        return expected.stream().map(Lexer::getDescriptorValue).collect(Collectors.joining("', '", "'", "'"));
     }
 
     private static CompileResult handleCodegenResult(String outputPath, Codegen.Program assembly) {

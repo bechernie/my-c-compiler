@@ -46,6 +46,8 @@ public class Codegen {
     private Operand convertExpression(Parser.Expression expression) {
         return switch (expression) {
             case Parser.Constant(int value) -> new Imm(value);
+            case Parser.Unary(Parser.UnaryOperator operator, Parser.Expression innerExpression) ->
+                    throw new UnsupportedOperationException();
         };
     }
 }
